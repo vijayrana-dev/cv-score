@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CV Score – Free Resume Scoring Tool</title>
+  <meta name="description" content="Upload your CV to get an instant score. Fast, free resume analyzer powered by AWS Lambda.">
+</head>
+<body style="font-family: Arial; max-width: 600px; margin: 2rem auto; text-align: center;">
+  <h1>CV Score Checker</h1>
+  <p>Select your PDF resume to get a score:</p>
+  <input type="file" id="cvFile" accept=".pdf" />
+  <br />
+  <button onclick="uploadCV()">Check Score</button>
+  <p id="result" style="margin-top: 20px;"></p>
+
+  <script>
+    async function uploadCV() {
+      const fileInput = document.getElementById('cvFile');
+      const result = document.getElementById('result');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        result.innerText = "Please select a PDF file.";
+        return;
+      }
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const base64Content = btoa(
+          new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+        );
+
+        const payload = {
+          fileName: file.name,
+          content: base64Content
+        };
+
+        const response = await fetch('https://g8ayplvegi.execute-api.ap-south-1.amazonaws.com/default/CvScorerFunction', {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Server error: ${errorText}`);
+        }
+
+        const data = await response.json();
+        result.innerText = `Your CV Score is: ${data.score ?? JSON.stringify(data)}`;
+      } catch (error) {
+        console.error(error);
+        result.innerText = "Error: Could not get score. Check console for details.";
+      }
+    }
+  </script>
+</body>
+</html>
